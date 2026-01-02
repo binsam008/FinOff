@@ -15,8 +15,8 @@ export default function Topbar() {
     <header className="sticky top-0 z-40 bg-[#0b0b10]/80 backdrop-blur
                        border-b border-purple-500/20">
       <div className="flex justify-between items-center px-6 py-4 max-w-[1400px] mx-auto">
-        <h1 className="text-purple-400 font-semibold tracking-wide">
-          Multi-Business CRM
+        <h1 className="text-purple-400 text-xl font-semibold tracking-wide">
+          Finn-Off
         </h1>
 
         <div className="flex gap-3 items-center">

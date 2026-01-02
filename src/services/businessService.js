@@ -15,7 +15,6 @@ export const addBusiness = async (userId, data) => {
     collection(db, "users", userId, "businesses"),
     {
       name: data.name,
-      currency: data.currency || "INR",
       createdAt: serverTimestamp(),
     }
   );
@@ -49,7 +48,7 @@ export const addOffice = async (userId, businessId, data) => {
     {
       name: data.name,
       city: data.city,
-      currency: data.currency || "INR", // ✅ REQUIRED
+      currency: data.currency || "INR", // ✅ ONLY STORAGE
       createdAt: serverTimestamp(),
     }
   );

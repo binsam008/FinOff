@@ -10,36 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-/* ================= FX → INR ================= */
-
-const convertToINR = async (amount, fromCurrency) => {
-  const safeAmount = Number(amount) || 0;
-
-  if (!fromCurrency || fromCurrency === "INR") {
-    return { inr: safeAmount, rate: 1 };
-  }
-
-  try {
-    const res = await fetch(
-      `https://api.exchangerate.host/latest?base=${fromCurrency}&symbols=INR`
-    );
-    const data = await res.json();
-    const rate = Number(data?.rates?.INR);
-
-    if (!rate || isNaN(rate)) {
-      return { inr: safeAmount, rate: 1 };
-    }
-
-    return {
-      inr: Number((safeAmount * rate).toFixed(2)),
-      rate: Number(rate.toFixed(4)),
-    };
-  } catch {
-    return { inr: safeAmount, rate: 1 };
-  }
-};
-
-/* ================= DUPLICATE CHECK ================= */
+/* ================= CHECK DUPLICATE ================= */
 
 export const recordExists = async (
   userId,
@@ -62,6 +33,7 @@ export const recordExists = async (
     where("month", "==", month),
     where("year", "==", year)
   );
+
   const snap = await getDocs(q);
   return !snap.empty;
 };
@@ -75,12 +47,13 @@ export const addRecord = async (
   data,
   officeCurrency
 ) => {
+  if (!officeCurrency) {
+    throw new Error("Office currency missing");
+  }
+
   const revenue = Number(data.revenue) || 0;
   const expense = Number(data.expense) || 0;
   const profit = revenue - expense;
-
-  const revFX = await convertToINR(revenue, officeCurrency);
-  const expFX = await convertToINR(expense, officeCurrency);
 
   await addDoc(
     collection(
@@ -100,20 +73,15 @@ export const addRecord = async (
       revenue,
       expense,
       profit,
-      currency: officeCurrency,
 
-      revenueINR: revFX.inr,
-      expenseINR: expFX.inr,
-      profitINR: revFX.inr - expFX.inr,
-      exchangeRate: revFX.rate,
+      currency: officeCurrency, // ✅ ONLY currency
 
-      baseCurrency: "INR",
       createdAt: serverTimestamp(),
     }
   );
 };
 
-/* ================= DELETE ================= */
+/* ================= DELETE RECORD ================= */
 
 export const deleteRecord = async (
   userId,
@@ -156,16 +124,17 @@ export const getRecords = async (
     )
   );
 
-  return snap.docs.map(d => {
-    const r = d.data();
+  return snap.docs.map((d) => {
+    const data = d.data();
+
     const profitPercent =
-      r.revenueINR > 0
-        ? ((r.profitINR / r.revenueINR) * 100).toFixed(2)
+      data.revenue > 0
+        ? ((data.profit / data.revenue) * 100).toFixed(2)
         : "0.00";
 
     return {
       id: d.id,
-      ...r,
+      ...data,
       profitPercent: Number(profitPercent),
     };
   });
